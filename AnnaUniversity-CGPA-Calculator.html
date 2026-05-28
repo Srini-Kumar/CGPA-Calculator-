@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anna University EEE GPA Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --secondary: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            padding: 0.6rem 2rem;
+            border: 2px solid var(--primary);
+            background: white;
+            color: var(--primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .mode-btn:hover {
+            background: var(--primary-light);
+            color: white;
+            border-color: var(--primary-light);
+        }
+
+        /* ── GPA single selector ── */
+        .semester-selector {
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .semester-selector select {
+            padding: 0.75rem 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+
+        /* ── CGPA range selector – FIX: both selects same size, single row ── */
+        .cgpa-range-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: nowrap;
+            margin: 1rem 0;
+        }
+
+        .cgpa-range-selector select {
+            width: 160px;
+            flex-shrink: 0;
+            padding: 0.75rem 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .range-label {
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .calculator {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subject-grid {
+            display: grid;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .semester-section {
+            margin-bottom: 1rem;
+        }
+
+        .semester-title {
+            color: var(--primary);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .subject-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 1rem;
+            align-items: center;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        select {
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button {
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            max-width: 320px;
+            margin: 2rem auto;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        .calculate-btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .results {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .chart-container {
+            margin-top: 1.5rem;
+            height: 300px;
+        }
+
+        .credit-display {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .subject-code {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* ── Add Subject button – FIX: full width in all contexts ── */
+        .add-subject-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin: 0.6rem 0 0.4rem 0;
+            padding: 0.55rem 1rem;
+            background: white;
+            color: var(--primary);
+            border: 1.5px dashed var(--primary);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .add-subject-btn:hover {
+            background: #eff6ff;
+            border-style: solid;
+        }
+
+        .custom-subject-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 0.6rem;
+            align-items: center;
+            padding: 0.5rem;
+            background: #f0f7ff;
+            border-radius: 6px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .custom-subject-row input {
+            padding: 0.5rem 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .custom-subject-row input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px #bfdbfe;
+        }
+
+        .custom-subject-row input.invalid {
+            border-color: var(--error);
+        }
+
+        .custom-inputs {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .remove-subject-btn {
+            background: none;
+            border: none;
+            color: var(--error);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+            line-height: 1;
+        }
+
+        .remove-subject-btn:hover {
+            background: #fee2e2;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .results-header h3 {
+            margin: 0;
+        }
+
+        .export-img-btn {
+            padding: 0.4rem 1rem;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: none;
+        }
+
+        .export-img-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+
+        /* ── Hidden result card rendered for image export ── */
+        #result-card {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 780px;
+            background: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 32px 36px 28px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+        }
+
+        #result-card .rc-header {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        #result-card .rc-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin: 0 0 4px;
+        }
+
+        #result-card .rc-subtitle {
+            font-size: 13px;
+            color: #475569;
+            margin: 0 0 4px;
+        }
+
+        #result-card .rc-divider {
+            border: none;
+            border-top: 2px solid #2563eb;
+            margin: 10px 0 18px;
+        }
+
+        #result-card .rc-mode-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 14px;
+        }
+
+        #result-card table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        #result-card thead tr {
+            background: #1e3a8a;
+            color: #fff;
+        }
+
+        #result-card thead th {
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #result-card thead th.center {
+            text-align: center;
+        }
+
+        #result-card tbody tr:nth-child(even) {
+            background: #eff6ff;
+        }
+
+        #result-card tbody td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #1e293b;
+        }
+
+        #result-card tbody td.center {
+            text-align: center;
+        }
+
+        #result-card tbody td.grade-pass {
+            color: #15803d;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        #result-card tbody td.grade-fail {
+            color: #b91c1c;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        #result-card .rc-sem-header {
+            background: #dbeafe;
+            color: #1e3a8a;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+        }
+
+        #result-card .rc-gpa-strip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            border-radius: 4px;
+            padding: 6px 12px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            color: #1e3a8a;
+            font-weight: 600;
+        }
+
+        #result-card .rc-cgpa-box {
+            background: #1e3a8a;
+            color: #fff;
+            border-radius: 6px;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        #result-card .rc-cgpa-box .label {
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0.85;
+        }
+
+        #result-card .rc-cgpa-box .value {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+        }
+
+        #result-card .rc-cgpa-box .credits {
+            font-size: 12px;
+            opacity: 0.75;
+        }
+
+        #result-card .rc-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 10px;
+        }
+
+        .arrear-note {
+            font-size: 0.8rem;
+            color: #ef4444;
+            padding: 0.4rem 0.6rem;
+            background: #fef2f2;
+            border-left: 3px solid #ef4444;
+            border-radius: 0 4px 4px 0;
+            margin: 4px 0;
+            display: none;
+        }
+       @media (max-width: 600px) {
+
+    body {
+        padding: 10px;
+    }
+
+    .calculator {
+        padding: 1rem;
+    }
+
+    /* Subject row: stack name on top, credits + grade on same row below */
+    .subject-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+    }
+
+    .subject-row .subject-name,
+    .subject-row .subject-code {
+        grid-column: 1 / -1;   /* full width on first row */
+    }
+
+    /* Custom added subject row: same fix */
+    .custom-subject-row {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+    }
+
+    .custom-inputs {
+        grid-column: 1 / -1;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* CGPA range selectors: stack vertically */
+    .cgpa-range-selector {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cgpa-range-selector select {
+        width: 100%;
+    }
+
+    /* GPA semester selector full width */
+    .semester-selector select {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Results header: stack on mobile */
+    .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .export-img-btn {
+        width: 100%;
+    }
+
+    /* Reduce chart height on mobile */
+    .chart-container {
+        height: 200px;
+    }
+
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; }
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Anna University GPA Calculator</h1>
+            <h2>B.E. Electrical and Electronics Engineering</h2>
+        </div>
+
+        <div class="calculator">
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="setMode('gpa', event)">GPA</button>
+                <button class="mode-btn" onclick="setMode('cgpa', event)">CGPA</button>
+            </div>
+
+            <!-- GPA mode: single selector -->
+            <div class="semester-selector" id="gpaSemesterSelector">
+                <select id="semesterSelect" onchange="loadSubjects()">
+                    <option value="">Select Semester</option>
+                </select>
+            </div>
+
+            <!-- CGPA mode: from/to selectors — now equal width, single row -->
+            <div class="cgpa-range-selector" id="cgpaSemesterSelector" style="display:none;">
+                <select id="semesterFrom" onchange="onRangeChange()">
+                    <option value="">From Semester</option>
+                </select>
+                <select id="semesterTo" onchange="onRangeChange()">
+                    <option value="">To Semester</option>
+                </select>
+            </div>
+
+            <div id="subjectGrid" class="subject-grid"></div>
+
+            <button id="calculateBtn" class="calculate-btn" onclick="calculate()">Calculate GPA</button>
+
+            <div id="results" class="results">
+                <div class="results-header">
+                    <h3>Results</h3>
+                   <select id="exportSelector" class="export-img-btn" onchange="handleExport(this)">
+    <option value="" disabled selected> Export Results...</option>
+    <option value="image"> Export as Image</option>
+    <option value="pdf">Export as PDF</option>
+</select>
+                </div>
+                <p id="arrear-warning" class="arrear-note">
+                    ⚠ Subjects with U / W / SA grades are excluded from the CGPA denominator per Anna University regulations.
+                </p>
+                <p><span id="result-label">GPA for selected semester</span>: <strong><span id="gpa-result" style="color:var(--primary);font-size:1.4rem;">0.00</span></strong></p>
+                <p>Credits counted: <span id="total-credits">0</span></p>
+                <div id="semester-gpa-breakdown" style="display:none;">
+                    <h4>Semester-wise GPA Breakdown:</h4>
+                    <div id="semester-gpa-list"></div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="gradesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden div used for image export rendering -->
+    <div id="result-card"></div>
+
+    <script>
+        let currentMode = 'gpa';
+        let lastCalcData = null;
+
+        // FIX: Added W (-1) and SA (-2) to grade label map
+        const gradeLabel = { 10:'O', 9:'A+', 8:'A', 7:'B+', 6:'B', 5:'C', 0:'U', '-1':'W', '-2':'SA' };
+
+        // Helper: returns the display string for a numeric grade value
+        function gradeStr(g) { return gradeLabel[g] !== undefined ? gradeLabel[g] : String(g); }
+
+        // Helper: is this grade a fail/exclude grade?
+        function isFailed(grade) { return grade <= 0; }
+
+        // ── Curriculum data ──────────────────────────────────────────────
+        const semesterData = {
+            1: [
+                { code:"HS3152", name:"Professional English - I",                   credits:3   },
+                { code:"MA3151", name:"Matrices and Calculus",                       credits:4   },
+                { code:"PH3151", name:"Engineering Physics",                         credits:3   },
+                { code:"CY3151", name:"Engineering Chemistry",                       credits:3   },
+                { code:"GE3151", name:"Problem Solving and Python Programming",      credits:3   },
+                { code:"GE3152", name:"Heritage of Tamils",                          credits:1   },
+                { code:"GE3171", name:"Problem Solving and Python Lab",              credits:2   },
+                { code:"BS3171", name:"Physics and Chemistry Lab",                   credits:2   },
+                { code:"GE3172", name:"English Laboratory",                          credits:1   }
+            ],
+            2: [
+                { code:"HS3252", name:"Professional English - II",                  credits:2   },
+                { code:"MA3251", name:"Statistics and Numerical Methods",            credits:4   },
+                { code:"PH3202", name:"Physics for Electrical Engineering",          credits:3   },
+                { code:"BE3255", name:"Basic Civil and Mechanical Engineering",      credits:3   },
+                { code:"GE3251", name:"Engineering Graphics",                        credits:4   },
+                { code:"EE3251", name:"Electric Circuit Analysis",                   credits:4   },
+                { code:"GE3252", name:"Tamils and Technology",                       credits:1   },
+                { code:"GE3271", name:"Engineering Practices Lab",                   credits:2   },
+                { code:"EE3271", name:"Electric Circuits Laboratory",                credits:2   },
+                { code:"GE3272", name:"Communication Lab",                           credits:2   }
+            ],
+            3: [
+                { code:"MA3303", name:"Probability and Complex Functions",           credits:4   },
+                { code:"EE3301", name:"Electromagnetic Fields",                      credits:4   },
+                { code:"EE3302", name:"Digital Logic Circuits",                      credits:3   },
+                { code:"EC3301", name:"Electron Devices and Circuits",               credits:3   },
+                { code:"EE3303", name:"Electrical Machines - I",                     credits:3   },
+                { code:"CS3353", name:"C Programming and Data Structures",           credits:3   },
+                { code:"EC3311", name:"Electronic Devices and Circuits Lab",         credits:1.5 },
+                { code:"EE3311", name:"Electrical Machines Laboratory - I",          credits:1.5 },
+                { code:"CS3362", name:"C Programming and Data Structures Lab",       credits:1.5 },
+                { code:"GE3361", name:"Professional Development",                    credits:1   }
+            ],
+            4: [
+                { code:"GE3451", name:"Environmental Sciences",                      credits:2   },
+                { code:"EE3401", name:"Transmission and Distribution",               credits:3   },
+                { code:"EE3402", name:"Linear Integrated Circuits",                  credits:3   },
+                { code:"EE3403", name:"Measurements and Instrumentation",            credits:3   },
+                { code:"EE3404", name:"Microprocessor and Microcontroller",          credits:3   },
+                { code:"EE3405", name:"Electrical Machines - II",                    credits:3   },
+                { code:"EE3411", name:"Electrical Machines Laboratory - II",         credits:1.5 },
+                { code:"EE3412", name:"Linear and Digital Circuits Lab",             credits:1.5 },
+                { code:"EE3413", name:"Microprocessor Lab",                          credits:1.5 }
+            ],
+            5: [
+                { code:"EE3501", name:"Power System Analysis",                       credits:3   },
+                { code:"EE3591", name:"Power Electronics",                           credits:3   },
+                { code:"EE3503", name:"Control Systems",                             credits:3   },
+                { code:"Elective I",  name:"Professional Elective I",                credits:3   },
+                { code:"Elective II", name:"Professional Elective II",               credits:3   },
+                { code:"Elective III",name:"Professional Elective III",              credits:3   },
+                { code:"EE3511", name:"Power Electronics Laboratory",                credits:1.5 },
+                { code:"EE3512", name:"Control and Instrumentation Laboratory",      credits:2   }
+            ],
+            6: [
+                { code:"EE3601",        name:"Protection and Switchgear",            credits:3   },
+                { code:"EE3602",        name:"Power System Operation and Control",   credits:3   },
+                { code:"Open Elective I",name:"Open Elective I",                     credits:3   },
+                { code:"Elective IV",   name:"Professional Elective IV",             credits:3   },
+                { code:"Elective V",    name:"Professional Elective V",              credits:3   },
+                { code:"Elective VI",   name:"Professional Elective VI",             credits:3   },
+                { code:"EE3611",        name:"Power System Laboratory",              credits:1.5 }
+            ],
+            7: [
+                { code:"EE3701",           name:"High Voltage Engineering",          credits:3   },
+                { code:"GE3791",           name:"Human Values and Ethics",           credits:2   },
+                { code:"Management Elec.", name:"Elective - Management",             credits:3   },
+                { code:"Open Elective II", name:"Open Elective II",                  credits:3   },
+                { code:"Open Elective III",name:"Open Elective III",                 credits:3   },
+                { code:"Open Elective IV", name:"Open Elective IV",                  credits:3   },
+                { code:"Elective VII",     name:"Professional Elective VII",         credits:3   }
+            ],
+            8: [
+                { code:"EE3811", name:"Project Work / Internship",                   credits:10  }
+            ]
+        };
+
+        // ── Grade dropdown HTML (shared across all row types) ─────────────
+        function gradeOptionsHTML(semAttr) {
+            return `<select class="grade-select" ${semAttr}>
+                        <option value="10" selected>O - 10</option>
+                        <option value="9">A+ - 9</option>
+                        <option value="8">A - 8</option>
+                        <option value="7">B+ - 7</option>
+                        <option value="6">B - 6</option>
+                        <option value="5">C - 5</option>
+                        <option value="0">U - Failed</option>
+                        <option value="-1">W - Withdrawal</option>
+                        <option value="-2">SA - Absent</option>
+                    </select>`;
+        }
+
+        // ── Mode switching ────────────────────────────────────────────────
+        function setMode(mode, evt) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            if (evt && evt.target) evt.target.classList.add('active');
+
+            document.getElementById('semesterSelect').value = '';
+            document.getElementById('semesterFrom').value = '';
+            document.getElementById('semesterTo').value = '';
+            document.getElementById('subjectGrid').innerHTML = '';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('exportSelector').style.display = 'none';
+            document.getElementById('arrear-warning').style.display = 'none';
+            lastCalcData = null;
+
+            updateSemesterOptions();
+
+            const btn = document.getElementById('calculateBtn');
+            if (mode === 'cgpa') {
+                btn.textContent = 'Calculate CGPA';
+                document.getElementById('result-label').textContent = 'CGPA for selected range';
+                document.getElementById('gpaSemesterSelector').style.display = 'none';
+                document.getElementById('cgpaSemesterSelector').style.display = 'flex';
+            } else {
+                btn.textContent = 'Calculate GPA';
+                document.getElementById('result-label').textContent = 'GPA for selected semester';
+                document.getElementById('gpaSemesterSelector').style.display = 'block';
+                document.getElementById('cgpaSemesterSelector').style.display = 'none';
+            }
+        }
+
+        function updateSemesterOptions() {
+            const sel = document.getElementById('semesterSelect');
+            sel.innerHTML = '<option value="">Select Semester</option>';
+            const from = document.getElementById('semesterFrom');
+            const to   = document.getElementById('semesterTo');
+            from.innerHTML = '<option value="">From Semester</option>';
+            to.innerHTML   = '<option value="">To Semester</option>';
+            for (let i = 1; i <= 8; i++) {
+                sel.innerHTML  += `<option value="${i}">Semester ${i}</option>`;
+                from.innerHTML += `<option value="${i}">Semester ${i}</option>`;
+                to.innerHTML   += `<option value="${i}">Semester ${i}</option>`;
+            }
+        }
+
+        function onRangeChange() {
+            const from = parseInt(document.getElementById('semesterFrom').value);
+            const to   = parseInt(document.getElementById('semesterTo').value);
+            if (!from || !to) return;
+            if (from > to) { alert('"From" semester cannot be greater than "To" semester.'); return; }
+            loadCGPASubjects(from, to);
+        }
+
+        // ── Subject loaders ───────────────────────────────────────────────
+        function loadSubjects() {
+            const sem  = document.getElementById('semesterSelect').value;
+            const grid = document.getElementById('subjectGrid');
+            grid.innerHTML = '';
+            if (!sem) return;
+            loadSemesterSubjects(sem, grid, null);
+        }
+
+        function loadSemesterSubjects(semester, container, semNum) {
+            if (!semesterData[semester]) return;
+            semesterData[semester].forEach(subject => {
+                const row = document.createElement('div');
+                row.className = 'subject-row';
+                const semAttr = semNum !== null ? `data-semester="${semNum}"` : '';
+                row.innerHTML = `
+                    <div class="subject-code">${subject.code} - ${subject.name}</div>
+                    <div class="credit-display">${subject.credits} credits</div>
+                    ${gradeOptionsHTML(semAttr)}
+                `;
+                container.appendChild(row);
+            });
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'add-subject-btn';
+            addBtn.innerHTML = '＋ Add Subject';
+            addBtn.onclick = () => insertCustomSubjectRow(container, addBtn, semNum);
+            container.appendChild(addBtn);
+        }
+
+        function loadCGPASubjects(fromSem, toSem) {
+            const grid = document.getElementById('subjectGrid');
+            grid.innerHTML = '';
+            for (let sem = fromSem; sem <= toSem; sem++) {
+                if (!semesterData[sem]) continue;
+                const section  = document.createElement('div');
+                section.className = 'semester-section';
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'semester-title';
+                titleDiv.textContent = `Semester ${sem}`;
+                section.appendChild(titleDiv);
+                loadSemesterSubjects(sem, section, sem);
+                grid.appendChild(section);
+            }
+        }
+
+        function insertCustomSubjectRow(container, addBtn, semester) {
+            const row = document.createElement('div');
+            row.className = 'custom-subject-row';
+            const semAttr = semester !== null ? `data-semester="${semester}"` : '';
+            row.innerHTML = `
+                <div class="custom-inputs">
+                    <input type="text"   class="custom-name"    placeholder="Subject Name *" required />
+                    <input type="text"   class="custom-code"    placeholder="Subject Code" />
+                </div>
+                <input type="number" class="custom-credits" placeholder="Credits *" min="0.5" max="10" step="0.5" required />
+                ${gradeOptionsHTML(semAttr)}
+                <button class="remove-subject-btn" title="Remove"
+                    onclick="this.closest('.custom-subject-row').remove()">✕</button>
+            `;
+            container.insertBefore(row, addBtn);
+            row.querySelector('.custom-name').focus();
+        }
+
+        // ── Calculation ───────────────────────────────────────────────────
+        function calculate() {
+            if (currentMode === 'gpa') calculateGPA(); else calculateCGPA();
+        }
+
+        function calculateGPA() {
+            const rows = document.querySelectorAll('.subject-row, .custom-subject-row');
+            let totalCredits = 0, totalGradePoints = 0;
+            const subjectGrades = [];
+            let hasError = false;
+
+            rows.forEach(row => {
+                let credits, name, code = '';
+                if (row.classList.contains('custom-subject-row')) {
+                    const ni = row.querySelector('.custom-name');
+                    const ci = row.querySelector('.custom-credits');
+                    ni.classList.remove('invalid'); ci.classList.remove('invalid');
+                    const nv = ni.value.trim();
+                    const cv = parseFloat(ci.value);
+                    if (!nv) { ni.classList.add('invalid'); hasError = true; }
+                    if (!ci.value || isNaN(cv) || cv <= 0) { ci.classList.add('invalid'); hasError = true; }
+                    if (!nv || isNaN(cv) || cv <= 0) return;
+                    credits = cv; name = nv;
+                    code = row.querySelector('.custom-code').value.trim() || '—';
+                } else {
+                    const txt = row.querySelector('.subject-code').textContent;
+                    credits = parseFloat(row.querySelector('.credit-display').textContent);
+                    const parts = txt.split(' - ');
+                    code = parts[0].trim(); name = parts.slice(1).join(' - ').trim();
+                }
+                const grade = parseFloat(row.querySelector('.grade-select').value);
+                // For GPA: all enrolled subjects count in denominator; failed = 0 grade points
+                const gp = Math.max(0, grade);
+                totalCredits     += credits;
+                totalGradePoints += credits * gp;
+                subjectGrades.push({ code, name, grade, credits });
+            });
+
+            if (hasError) { alert('Please fill in Subject Name and Credits for all added subjects.'); return; }
+            if (totalCredits === 0) { alert('No subjects found to calculate GPA.'); return; }
+
+            const gpa = totalGradePoints / totalCredits;
+            document.getElementById('gpa-result').textContent  = gpa.toFixed(2);
+            document.getElementById('total-credits').textContent = totalCredits;
+            document.getElementById('results').style.display   = 'block';
+            document.getElementById('semester-gpa-breakdown').style.display = 'none';
+            document.getElementById('arrear-warning').style.display = 'none';
+
+            const semSel = document.getElementById('semesterSelect');
+            lastCalcData = {
+                mode: 'gpa',
+                semesterLabel: semSel.options[semSel.selectedIndex].text,
+                subjects: subjectGrades,
+                gpa, totalCredits
+            };
+            document.getElementById('exportSelector').style.display = 'inline-block';
+            updateChart(subjectGrades);
+        }
+
+        function calculateCGPA() {
+            const rows = document.querySelectorAll('.subject-row, .custom-subject-row');
+            let totalPassedCredits = 0, totalPassedGradePoints = 0;
+            const subjectGrades = [];
+            // FIX: renamed from 'semesterData' to 'semBreakdown' to avoid variable shadowing
+            const semBreakdown  = {};
+            let hasError = false, hasArrears = false;
+
+            rows.forEach(row => {
+                let credits, name, code = '';
+                if (row.classList.contains('custom-subject-row')) {
+                    const ni = row.querySelector('.custom-name');
+                    const ci = row.querySelector('.custom-credits');
+                    ni.classList.remove('invalid'); ci.classList.remove('invalid');
+                    const nv = ni.value.trim();
+                    const cv = parseFloat(ci.value);
+                    if (!nv) { ni.classList.add('invalid'); hasError = true; }
+                    if (!ci.value || isNaN(cv) || cv <= 0) { ci.classList.add('invalid'); hasError = true; }
+                    if (!nv || isNaN(cv) || cv <= 0) return;
+                    credits = cv; name = nv;
+                    code = row.querySelector('.custom-code').value.trim() || '—';
+                } else {
+                    const txt = row.querySelector('.subject-code').textContent;
+                    credits = parseFloat(row.querySelector('.credit-display').textContent);
+                    const parts = txt.split(' - ');
+                    code = parts[0].trim(); name = parts.slice(1).join(' - ').trim();
+                }
+
+                const gradeSelect = row.querySelector('.grade-select');
+                const grade    = parseFloat(gradeSelect.value);
+                const semester = gradeSelect.getAttribute('data-semester');
+                const gp       = Math.max(0, grade);
+
+                subjectGrades.push({ code, name, grade, credits, semester });
+
+                // ── Per-semester breakdown (for Semester GPA: includes all subjects) ──
+                if (!semBreakdown[semester]) {
+                    semBreakdown[semester] = {
+                        allCredits: 0, allGradePoints: 0,
+                        passedCredits: 0, passedGradePoints: 0,
+                        subjects: []
+                    };
+                }
+                semBreakdown[semester].allCredits      += credits;
+                semBreakdown[semester].allGradePoints  += credits * gp;
+                semBreakdown[semester].subjects.push({ code, name, grade, credits });
+
+                // FIX: CGPA denominator only includes successfully passed subjects (grade > 0)
+                // Subjects with U (0), W (-1), SA (-2) are excluded per Anna University regulations
+                if (grade > 0) {
+                    totalPassedCredits     += credits;
+                    totalPassedGradePoints += credits * gp;
+                    semBreakdown[semester].passedCredits     += credits;
+                    semBreakdown[semester].passedGradePoints += credits * gp;
+                } else {
+                    hasArrears = true;
+                }
+            });
+
+            if (hasError) { alert('Please fill in Subject Name and Credits for all added subjects.'); return; }
+            if (totalPassedCredits === 0 && subjectGrades.length === 0) {
+                alert('No subjects found to calculate CGPA.'); return;
+            }
+            if (totalPassedCredits === 0) {
+                alert('All subjects appear to be failed/withdrawn. CGPA cannot be computed.'); return;
+            }
+
+            const cgpa = totalPassedGradePoints / totalPassedCredits;
+            document.getElementById('gpa-result').textContent   = cgpa.toFixed(2);
+            document.getElementById('total-credits').textContent = totalPassedCredits;
+            document.getElementById('results').style.display    = 'block';
+            document.getElementById('arrear-warning').style.display = hasArrears ? 'block' : 'none';
+
+            const fromVal = document.getElementById('semesterFrom').value;
+            const toVal   = document.getElementById('semesterTo').value;
+            lastCalcData  = {
+                mode: 'cgpa',
+                rangeLabel: `Semester ${fromVal} – ${toVal}`,
+                semBreakdown,
+                cgpa,
+                totalPassedCredits,
+                hasArrears
+            };
+            document.getElementById('exportSelector').style.display = 'inline-block';
+
+            displaySemesterGPABreakdown(semBreakdown);
+            updateChart(subjectGrades);
+        }
+
+        function displaySemesterGPABreakdown(semBreakdown) {
+            const bd  = document.getElementById('semester-gpa-breakdown');
+            const lst = document.getElementById('semester-gpa-list');
+            bd.style.display = 'block';
+            lst.innerHTML = '';
+            Object.keys(semBreakdown).sort((a, b) => +a - +b).forEach(sem => {
+                const d   = semBreakdown[sem];
+                const gpa = d.allCredits > 0 ? (d.allGradePoints / d.allCredits).toFixed(2) : 'N/A';
+                const div = document.createElement('div');
+                div.style.cssText = 'padding:0.5rem;margin:0.5rem 0;background:#f0f0f0;border-radius:4px;display:flex;justify-content:space-between;';
+                div.innerHTML = `<span><strong>Semester ${sem}:</strong></span><span>GPA: <strong>${gpa}</strong>&nbsp;&nbsp;Credits: ${d.allCredits}</span>`;
+                lst.appendChild(div);
+            });
+        }
+
+        // ── Chart ─────────────────────────────────────────────────────────
+        function updateChart(grades) {
+            const ctx = document.getElementById('gradesChart').getContext('2d');
+            if (window.gradeChart) window.gradeChart.destroy();
+            window.gradeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: grades.map(g => g.code || g.name),
+                    datasets: [{
+                        label: 'Grade Points',
+                        data: grades.map(g => Math.max(0, g.grade)),
+                        backgroundColor: grades.map(g => g.grade > 0 ? '#2563eb' : '#ef4444'),
+                        borderColor:     grades.map(g => g.grade > 0 ? '#1d4ed8' : '#b91c1c'),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 10 } }
+                }
+            });
+        }
+
+        // ── Image Export ──────────────────────────────────────────────────
+        function exportImage() {
+            if (!lastCalcData) return;
+            const card = document.getElementById('result-card');
+            card.innerHTML = buildResultCardHTML(lastCalcData);
+
+            const btn = document.getElementById('exportImgBtn');
+            btn.textContent = '⏳ Generating…';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+                    const link = document.createElement('a');
+                    const ts   = new Date().toISOString().slice(0,10);
+                    link.download = lastCalcData.mode === 'gpa'
+                        ? `GPA_${lastCalcData.semesterLabel.replace(/\s+/g,'_')}_${ts}.png`
+                        : `CGPA_Sem${lastCalcData.rangeLabel.replace(/[^0-9]/g,'_')}_${ts}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    btn.textContent = '📷 Export as Image';
+                    btn.disabled = false;
+                    card.innerHTML = '';
+                });
+            }, 100);
+        }
+// ── Export Handling ───────────────────────────────────────────────
+        function handleExport(selectElement) {
+            const choice = selectElement.value;
+            if (choice === 'image') exportImage();
+            if (choice === 'pdf') exportPDF();
+            
+            // Reset the selector back to the default text
+            selectElement.selectedIndex = 0; 
+        }
+
+        function exportImage() {
+            if (!lastCalcData) return;
+            const card = document.getElementById('result-card');
+            card.innerHTML = buildResultCardHTML(lastCalcData);
+
+            const sel = document.getElementById('exportSelector');
+            sel.disabled = true;
+
+            setTimeout(() => {
+                html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+                    const link = document.createElement('a');
+                    const ts   = new Date().toISOString().slice(0,10);
+                    link.download = lastCalcData.mode === 'gpa'
+                        ? `GPA_${lastCalcData.semesterLabel.replace(/\s+/g,'_')}_${ts}.png`
+                        : `CGPA_Sem${lastCalcData.rangeLabel.replace(/[^0-9]/g,'_')}_${ts}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    sel.disabled = false;
+                    card.innerHTML = '';
+                });
+            }, 100);
+        }
+
+function exportPDF() {
+            if (!lastCalcData) return;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Match exact colors from your CSS
+            const brandBlue = [30, 58, 138];   // #1e3a8a
+            const primaryBlue = [37, 99, 235]; // #2563eb
+            const lightBlue = [239, 246, 255]; // #eff6ff
+            const textDark = [30, 41, 59];     // #1e293b
+            const textGrey = [71, 85, 105];    // #475569
+            const greenPass = [21, 128, 61];   // #15803d
+            const redFail = [185, 28, 28];     // #b91c1c
+
+            const pageWidth = doc.internal.pageSize.getWidth();
+
+            // Header matching the image
+            doc.setFontSize(16);
+            doc.setTextColor(...brandBlue);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Anna University — B.E. Electrical and Electronics Engineering', pageWidth/2, 18, { align: 'center' });
+
+            doc.setFontSize(11);
+            doc.setTextColor(...textGrey);
+            doc.setFont('helvetica', 'normal');
+            doc.text('GPA / CGPA Academic Record', pageWidth/2, 25, { align: 'center' });
+
+            // Divider Line
+            doc.setDrawColor(...primaryBlue);
+            doc.setLineWidth(0.8);
+            doc.line(14, 30, pageWidth - 14, 30);
+
+            let y = 38;
+
+            if (lastCalcData.mode === 'gpa') {
+                // Section Title
+                doc.setFontSize(11);
+                doc.setTextColor(...primaryBlue);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${lastCalcData.semesterLabel.toUpperCase()} — SEMESTER GPA REPORT`, 14, y);
+                y += 6;
+
+                // Table Data (Now includes all columns from the image)
+                const tableRows = lastCalcData.subjects.map((s, index) => [
+                    index + 1,
+                    s.code || '—',
+                    s.name,
+                    s.credits,
+                    gradeStr(s.grade),
+                    Math.max(0, s.grade * s.credits).toFixed(1)
+                ]);
+
+                // Draw Table
+                doc.autoTable({
+                    startY: y,
+                    head: [['S.No', 'Subject Code', 'Subject Name', 'Credits', 'Grade', 'Grade×Cr']],
+                    body: tableRows,
+                    theme: 'grid',
+                    headStyles: { fillColor: brandBlue, textColor: 255, fontStyle: 'bold', fontSize: 9, halign: 'left' },
+                    bodyStyles: { fontSize: 9, textColor: textDark },
+                    alternateRowStyles: { fillColor: lightBlue },
+                    columnStyles: { 
+                        0: { cellWidth: 15, halign: 'center' },
+                        1: { cellWidth: 30, halign: 'left' },
+                        2: { cellWidth: 'auto', halign: 'left' },
+                        3: { cellWidth: 20, halign: 'center' },
+                        4: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+                        5: { cellWidth: 25, halign: 'center' }
+                    },
+                    didParseCell: function(data) {
+                        // Color grades Green (Pass) or Red (Fail) to match the image
+                        if (data.section === 'body' && data.column.index === 4) {
+                            const pass = lastCalcData.subjects[data.row.index].grade > 0;
+                            data.cell.styles.textColor = pass ? greenPass : redFail;
+                        }
+                    },
+                    margin: { left: 14, right: 14 }
+                });
+
+                y = doc.lastAutoTable.finalY + 8;
+
+                // Large Summary Box (Matching the image)
+                doc.setFillColor(...brandBlue);
+                doc.roundedRect(14, y, pageWidth - 28, 22, 2, 2, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text('SEMESTER GPA', 20, y + 8);
+                doc.setFontSize(22);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${lastCalcData.gpa.toFixed(2)}`, 20, y + 17);
+
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Total Credits', pageWidth - 20, y + 8, { align: 'right' });
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${lastCalcData.totalCredits}`, pageWidth - 20, y + 17, { align: 'right' });
+
+            } else {
+                // CGPA Mode (Updated with similar styling)
+                doc.setFontSize(11);
+                doc.setTextColor(...primaryBlue);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`CGPA REPORT — ${lastCalcData.rangeLabel.toUpperCase()}`, 14, y);
+                y += 8;
+
+                const semKeys = Object.keys(lastCalcData.semBreakdown).sort((a,b) => +a - +b);
+
+                semKeys.forEach(sem => {
+                    const sd = lastCalcData.semBreakdown[sem];
+                    const semGpa = sd.allCredits > 0 ? (sd.allGradePoints / sd.allCredits).toFixed(2) : 'N/A';
+
+                    if (y > 240) { doc.addPage(); y = 20; }
+
+                    // Semester Header Strip
+                    doc.setFillColor(219, 234, 254); // #dbeafe
+                    doc.rect(14, y, pageWidth - 28, 7, 'F');
+                    doc.setFontSize(9);
+                    doc.setTextColor(...brandBlue);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Semester ${sem}`, 16, y + 5);
+                    y += 7;
+
+                    const tableRows = sd.subjects.map((s, index) => [
+                        index + 1, s.code || '—', s.name, s.credits, gradeStr(s.grade)
+                    ]);
+
+                    doc.autoTable({
+                        startY: y,
+                        head: [['S.No', 'Subject Code', 'Subject Name', 'Credits', 'Grade']],
+                        body: tableRows,
+                        theme: 'grid',
+                        headStyles: { fillColor: brandBlue, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+                        bodyStyles: { fontSize: 8.5, textColor: textDark },
+                        alternateRowStyles: { fillColor: lightBlue },
+                        columnStyles: { 
+                            0: { cellWidth: 15, halign: 'center' },
+                            1: { cellWidth: 30, halign: 'left' },
+                            2: { cellWidth: 'auto', halign: 'left' },
+                            3: { cellWidth: 20, halign: 'center' },
+                            4: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
+                        },
+                        didParseCell: function(data) {
+                            if (data.section === 'body' && data.column.index === 4) {
+                                const pass = sd.subjects[data.row.index].grade > 0;
+                                data.cell.styles.textColor = pass ? greenPass : redFail;
+                            }
+                        },
+                        margin: { left: 14, right: 14 }
+                    });
+
+                    y = doc.lastAutoTable.finalY + 2;
+
+                    // Semester Sub-total Strip
+                    doc.setFillColor(...lightBlue);
+                    doc.setDrawColor(147, 197, 253);
+                    doc.setLineWidth(0.3);
+                    doc.roundedRect(14, y, pageWidth - 28, 9, 1.5, 1.5, 'FD');
+                    doc.setTextColor(...brandBlue);
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Semester ${sem} GPA`, 18, y + 6);
+                    doc.text(`${semGpa}`, 65, y + 6);
+                    doc.setTextColor(...brandBlue);
+                    doc.text(`Credits: ${sd.allCredits}`, pageWidth - 20, y + 6, { align: 'right' });
+                    y += 14;
+                });
+
+                if (y > 255) { doc.addPage(); y = 20; }
+
+                // Large CGPA Summary Box
+                doc.setFillColor(...brandBlue);
+                doc.roundedRect(14, y, pageWidth - 28, 22, 2, 2, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text('CUMULATIVE CGPA', 20, y + 8);
+                doc.setFontSize(22);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${lastCalcData.cgpa.toFixed(2)}`, 20, y + 17);
+                
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Credits Counted', pageWidth - 20, y + 8, { align: 'right' });
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${lastCalcData.totalPassedCredits}`, pageWidth - 20, y + 17, { align: 'right' });
+                
+                if (lastCalcData.hasArrears) {
+                    doc.setTextColor(...redFail);
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text('⚠ Subjects graded U / W / SA are excluded from CGPA denominator (Anna University Regulations).', 14, y + 27);
+                }
+            }
+
+            // Footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(...textGrey);
+                const ts = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+                doc.text(`Generated on ${ts} | Anna University EEE GPA Calculator`, pageWidth/2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+            }
+
+            const tsStr = new Date().toISOString().slice(0,10);
+            const filename = lastCalcData.mode === 'gpa'
+                ? `GPA_${lastCalcData.semesterLabel.replace(/\s+/g, '_')}_${tsStr}.pdf`
+                : `CGPA_${lastCalcData.rangeLabel.replace(/[^a-zA-Z0-9]/g, '_')}_${tsStr}.pdf`;
+
+            doc.save(filename);
+        }
+        function buildResultCardHTML(data) {
+            const now = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
+            const header = `
+                <div class="rc-header">
+                    <div class="rc-title">Anna University — B.E. Electrical and Electronics Engineering</div>
+                    <div class="rc-subtitle">GPA / CGPA Academic Record</div>
+                </div>
+                <hr class="rc-divider">`;
+
+            const footer = `<div class="rc-footer">Generated on ${now} &nbsp;|&nbsp; Anna University EEE GPA Calculator</div>`;
+
+            if (data.mode === 'gpa') {
+                const rows = data.subjects.map((s, i) => {
+                    const gl   = gradeStr(s.grade);
+                    const pass = s.grade > 0;
+                    return `<tr>
+                        <td class="center">${i+1}</td>
+                        <td>${s.code || '—'}</td>
+                        <td>${s.name}</td>
+                        <td class="center">${s.credits}</td>
+                        <td class="${pass ? 'grade-pass' : 'grade-fail'}">${gl}</td>
+                        <td class="center">${Math.max(0, s.grade * s.credits).toFixed(1)}</td>
+                    </tr>`;
+                }).join('');
+
+                return header + `
+                    <div class="rc-mode-label">${data.semesterLabel} — Semester GPA Report</div>
+                    <table>
+                        <thead><tr>
+                            <th class="center" style="width:40px">S.No</th>
+                            <th style="width:110px">Subject Code</th>
+                            <th>Subject Name</th>
+                            <th class="center" style="width:60px">Credits</th>
+                            <th class="center" style="width:55px">Grade</th>
+                            <th class="center" style="width:65px">Grade×Cr</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                    <div class="rc-cgpa-box">
+                        <div><div class="label">SEMESTER GPA</div><div class="value">${data.gpa.toFixed(2)}</div></div>
+                        <div style="text-align:right"><div class="label">Total Credits</div><div class="credits" style="font-size:18px;opacity:1;font-weight:700;">${data.totalCredits}</div></div>
+                    </div>
+                    ${footer}`;
+            } else {
+                // CGPA mode
+                const semKeys = Object.keys(data.semBreakdown).sort((a,b)=>+a-+b);
+                let semSections = '';
+                semKeys.forEach(sem => {
+                    const sd  = data.semBreakdown[sem];
+                    const sgpa = sd.allCredits > 0 ? (sd.allGradePoints / sd.allCredits).toFixed(2) : 'N/A';
+                    const rows = sd.subjects.map((s, i) => {
+                        const gl   = gradeStr(s.grade);
+                        const pass = s.grade > 0;
+                        return `<tr>
+                            <td class="center">${i+1}</td>
+                            <td>${s.code || '—'}</td>
+                            <td>${s.name}</td>
+                            <td class="center">${s.credits}</td>
+                            <td class="${pass ? 'grade-pass' : 'grade-fail'}">${gl}</td>
+                        </tr>`;
+                    }).join('');
+
+                    semSections += `
+                        <tr class="rc-sem-header"><td colspan="5">Semester ${sem}</td></tr>
+                        ${rows}`;
+                });
+
+                // Build single table with all semesters + sub-totals as strips
+                let tableBody = '';
+                let stripHTML = '';
+                semKeys.forEach(sem => {
+                    const sd  = data.semBreakdown[sem];
+                    const sgpa = sd.allCredits > 0 ? (sd.allGradePoints / sd.allCredits).toFixed(2) : 'N/A';
+                    const rows = sd.subjects.map((s, i) => {
+                        const gl   = gradeStr(s.grade);
+                        const pass = s.grade > 0;
+                        return `<tr>
+                            <td class="center">${i+1}</td>
+                            <td>${s.code || '—'}</td>
+                            <td>${s.name}</td>
+                            <td class="center">${s.credits}</td>
+                            <td class="${pass ? 'grade-pass' : 'grade-fail'}">${gl}</td>
+                        </tr>`;
+                    }).join('');
+                    tableBody += `<tr class="rc-sem-header"><td colspan="5">Semester ${sem}</td></tr>${rows}`;
+                    stripHTML += `<div class="rc-gpa-strip"><span>Semester ${sem} GPA</span><span>${sgpa} &nbsp;&nbsp; Credits: ${sd.allCredits}</span></div>`;
+                });
+
+                const arrearNote = data.hasArrears
+                    ? `<p style="font-size:11px;color:#b91c1c;margin:6px 0 0;">⚠ Subjects graded U / W / SA are excluded from CGPA denominator (Anna University Regulations).</p>`
+                    : '';
+
+                return header + `
+                    <div class="rc-mode-label">CGPA Report — ${data.rangeLabel}</div>
+                    <table>
+                        <thead><tr>
+                            <th class="center" style="width:40px">S.No</th>
+                            <th style="width:110px">Subject Code</th>
+                            <th>Subject Name</th>
+                            <th class="center" style="width:60px">Credits</th>
+                            <th class="center" style="width:55px">Grade</th>
+                        </tr></thead>
+                        <tbody>${tableBody}</tbody>
+                    </table>
+                    ${stripHTML}
+                    <div class="rc-cgpa-box">
+                        <div><div class="label">CUMULATIVE CGPA</div><div class="value">${data.cgpa.toFixed(2)}</div></div>
+                        <div style="text-align:right"><div class="label">Credits Counted</div><div class="credits" style="font-size:18px;opacity:1;font-weight:700;">${data.totalPassedCredits}</div></div>
+                    </div>
+                    ${arrearNote}
+                    ${footer}`;
+            }
+        }
+
+        // ── Init ──────────────────────────────────────────────────────────
+        updateSemesterOptions();
+    </script>
+</body>
+</html>
