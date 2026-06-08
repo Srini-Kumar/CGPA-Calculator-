@@ -80,11 +80,11 @@
             7: [
                 { code:"EE3701",           name:"High Voltage Engineering",          credits:3   },
                 { code:"GE3791",           name:"Human Values and Ethics",           credits:2   },
-                { code:"Management Elec.", name:"Elective - Management",             credits:3   },
-                { code:"Open Elective II", name:"Open Elective II",                  credits:3   },
-                { code:"Open Elective III",name:"Open Elective III",                 credits:3   },
-                { code:"Open Elective IV", name:"Open Elective IV",                  credits:3   },
-                { code:"Elective VII",     name:"Professional Elective VII",         credits:3   }
+                { code:"GE3751", name:"Principles of Management",             credits:3   },
+                { code:"OCS351", name:"Artificial intelligence & Machine learning Fundamentals",                  credits:3   },
+                { code:"OHS352",name:"Project Report Writing",                 credits:3   },
+                { code:"OHS351", name:"English for Competitive Examinations",                  credits:3   },
+                { code:"EE3012",     name:"Electrical Drives",         credits:3   }
             ],
             8: [
                 { code:"EE3811", name:"Project Work / Internship",                   credits:10  }
