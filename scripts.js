@@ -466,7 +466,7 @@ function exportPDF() {
             doc.setFontSize(16);
             doc.setTextColor(...brandBlue);
             doc.setFont('helvetica', 'bold');
-            doc.text('Anna University — B.E. Electrical and Electronics Engineering', pageWidth/2, 18, { align: 'center' });
+            doc.text('JCT CET R21 — B.E. Electrical and Electronics Engineering', pageWidth/2, 18, { align: 'center' });
 
             doc.setFontSize(11);
             doc.setTextColor(...textGrey);
